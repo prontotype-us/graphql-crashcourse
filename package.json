@@ -1,0 +1,7 @@
+{
+  "name": "graphql-crashcourse",
+  "dependencies": {
+    "graphql": "^0.9.1",
+    "graphql-tools": "^0.10.0"
+  }
+}
