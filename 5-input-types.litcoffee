@@ -7,7 +7,9 @@ So far we have retrieved data, but haven't had any input of our own. GraphQL sep
 
 ## Schema
 
-Input types are like regular types, with a different prefix. The biggest difference is that you shouldn't add fields to the input type that you don't want changed. Here we just leave out the `id` field, and instead of the `thread` object type for output, we have a `thread_id` ID type on the input.
+Input types are like regular types, with a different prefix. The point is to define a set of fields that can be changed (or created) from user input, separate from the potentially different fields used when querying. An example is setting an ID field instead of fetching the relevant sub-object.
+
+Here we use the same `Message` model as before, and create a `MessageInput` input type to complement it. We'll leave out the `id` field since that shouldn't be changed, and instead of the `thread` object type for output, we have a `thread_id` ID type on the input.
 
 For ease of reference we'll also add a "Input" prefix to the input version of each type, but you don't have to &mdash; Mutation queries can only take Input types as arguments, so the correct type is implied if they share names.
 
