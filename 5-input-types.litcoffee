@@ -133,4 +133,4 @@ Mutation queries return types, so you can perform regular sub-queries from there
 
 ---
 
-Next: [6. Defining Schemas Programmatically](https://github.com/prontotype-us/graphql-crashcourse/blob/master/6-defining-schemas-programmatically.litcoffee)
+Next: [6. Somata Schema Interlude](https://github.com/prontotype-us/graphql-crashcourse/blob/master/6-somata-schema-interlude.litcoffee)
