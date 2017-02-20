@@ -29,7 +29,6 @@ To demonstrate that GraphQL does not have to be about fetching data from a datab
     }
 
     type Entry {
-        timestamp: Int
         body: String
         n_words: Int
     }
@@ -39,7 +38,7 @@ To demonstrate that GraphQL does not have to be about fetching data from a datab
     }
 
     type Mutation {
-        createEntry(user_email: String!, journal_name: String, body: String!): Entry
+        createEntry(topic: String, body: String!): Entry
     }
 
     """
@@ -92,8 +91,7 @@ We'll define a few services inline just as a proof of concept. Each of these ser
         findEntries: (topic, cb) ->
             cb null, entries[topic]
         createEntry: (topic, body, cb) ->
-            timestamp = new Date().getTime()
-            new_entry = {body, timestamp}
+            new_entry = {body}
             entries[topic].push new_entry
             cb null, new_entry
     }
@@ -160,6 +158,9 @@ And the root `getUser` method to make queries:
         getUser: ({email}) ->
             remotePromise 'example:users', 'getUser', email
                 .then (user) -> new User user
+        createEntry: ({topic, body}) ->
+            remotePromise 'example:journals', 'createEntry', topic, body
+                .then (entry) -> new Entry entry
     }
 
 ## Querying
@@ -193,6 +194,14 @@ This is inside a timeout to let the inline services register first:
         #              { body: 'i had some cheese', n_words: 4 } ] },
         #         { topic: 'books',
         #           entries: [ { body: 'i read a book called book', n_words: 6 } ] } ] } }
+
+        runQuery """mutation{
+            createEntry(topic: "food", body: "i am probably eating a bagel right now"){
+                body, n_words
+            }
+        }
+        """
+        # { createEntry: { body: 'i am probably eating a bagel right now', n_words: 8 } }
 
     , 500
 
