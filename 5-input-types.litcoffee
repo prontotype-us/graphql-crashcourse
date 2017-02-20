@@ -48,8 +48,8 @@ For ease of reference we'll also add a "Input" prefix to the input version of ea
     # Mutation queries
 
     type Mutation {
-        createMessage(input: MessageInput): Message
-        updateMessage(id: ID!, input: MessageInput): Message
+        createMessage(message: MessageInput): Message
+        updateMessage(id: ID!, message: MessageInput): Message
     }
 
     """
@@ -96,12 +96,12 @@ We'll define a class for our custom type, and a `getMessage` for the root Query 
 
 The mutation methods are also just regular functions, the only difference is that these will have the input argument as an object, with the fields defined in the MessageInput type above.
 
-    createMessage = ({input}) ->
+    createMessage = ({message}) ->
         id = Object.keys(messages).length
-        new Message(id, input)
+        new Message(id, message)
 
-    updateMessage = ({id, input}) ->
-        getMessage({id}).update(input)
+    updateMessage = ({id, message}) ->
+        getMessage({id}).update(message)
 
 Methods for both the root Query and Mutation are attached to the root resolver object:
 
@@ -125,10 +125,10 @@ Unlike regular queries, mutations are specified with `mutation` at the beginning
 
 Mutation queries return types, so you can perform regular sub-queries from there:
 
-    runQuery """mutation{updateMessage(id: 0, input: {body: "rewrote body"}){body}}"""
+    runQuery """mutation{updateMessage(id: 0, message: {body: "rewrote body"}){body}}"""
     # { updateMessage: { body: 'rewrote body' } }
 
-    runQuery """mutation{createMessage(input: {body: "a test", thread_id: 0}){body, thread{subject}}}"""
+    runQuery """mutation{createMessage(message: {body: "a test", thread_id: 0}){body, thread{subject}}}"""
     # { createMessage: { body: 'a test', thread: { subject: 'first subject' } } }
 
 ---

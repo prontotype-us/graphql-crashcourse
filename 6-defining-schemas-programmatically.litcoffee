@@ -81,17 +81,14 @@ Similar for the root Mutation type. You have to think carefully about input vs. 
             createMessage:
                 type: MessageType
                 args:
-                    body: type: graphql.GraphQLString
-                    thread_id: type: graphql.GraphQLID
-                    user_id: type: graphql.GraphQLID
-                resolve: (context, {body, thread_id, user_id}) ->
-                    createType(messages, {body, thread_id, user_id})
+                    message: type: MessageInputType
+                resolve: (context, {message}) ->
+                    createType(messages, message)
             createThread:
                 type: ThreadType
                 args:
                     subject: type: graphql.GraphQLString
-                    message:
-                        type: MessageInputType
+                    message: type: MessageInputType
                 resolve: (context, {subject, message}) ->
                     new_thread = createType(threads, {subject})
                     if message?
@@ -182,7 +179,7 @@ We don't have to change anything about our queries with the new schema.
     #           sender: { username: '2ndguy' } } ] } }
 
     runQuery """
-    mutation{createMessage(thread_id: 0, user_id: 0, body: "ur welcome lol"){
+    mutation{createMessage(message: {thread_id: 0, user_id: 0, body: "ur welcome lol"}){
         body, thread{subject}, sender{username}
     }}
     """
