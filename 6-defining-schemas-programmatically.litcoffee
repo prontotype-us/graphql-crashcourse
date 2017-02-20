@@ -46,7 +46,16 @@ Fields using custom types will also need a `resolve` function, which will be in 
 
 When types reference each other you might not have defined the referenced type yet, so GraphQL allows `fields` to be a function which will be executed at runtime.
 
-As before there's a root Query type, which happens to also be based on the `GraphQLObjectType`. Instead of an object of root resolvers we define the main queries here as fields. Resolve methods will also have an extra argument before `args` can be called `context`, as `self` doesn't really make sense here. The context passed is actually where we used to attach the root resolvers.
+We define input types with `GraphQLInputObjectType`. This defines the fields we can use for arguments of relevant Mutation queries.
+
+    MessageInputType = new graphql.GraphQLInputObjectType
+        name: 'MessageInput'
+        fields:
+            body: type: graphql.GraphQLString
+            thread_id: type: graphql.GraphQLID
+            user_id: type: graphql.GraphQLID
+
+As before there's a root Query type, which happens to also be based on the `GraphQLObjectType`. Instead of an object of root resolvers we define the main queries here as fields. Resolve methods will also have an extra argument before `args` called `context`.
 
     QueryType = new graphql.GraphQLObjectType
         name: 'Query'
@@ -64,10 +73,37 @@ As before there's a root Query type, which happens to also be based on the `Grap
                 resolve: (context, {id}) ->
                     getType(threads, {id})
 
-To build the schema we supply the main query object:
+Similar for the root Mutation type. You have to think carefully about input vs. output types at this point - the `type` of the field itself will always be an output type (what is returned after the mutation), but the `type` of an argument will be an input type. For builtin types it doesn't make a difference, but for custom types you have to supply the correct InputType.
+
+    MutationType = new graphql.GraphQLObjectType
+        name: 'Mutation'
+        fields:
+            createMessage:
+                type: MessageType
+                args:
+                    body: type: graphql.GraphQLString
+                    thread_id: type: graphql.GraphQLID
+                    user_id: type: graphql.GraphQLID
+                resolve: (context, {body, thread_id, user_id}) ->
+                    createType(messages, {body, thread_id, user_id})
+            createThread:
+                type: ThreadType
+                args:
+                    subject: type: graphql.GraphQLString
+                    message:
+                        type: MessageInputType
+                resolve: (context, {subject, message}) ->
+                    new_thread = createType(threads, {subject})
+                    if message?
+                        message.thread_id = new_thread.id
+                        new_message = createType(messages, message)
+                    return new_thread
+
+To build the schema we supply the main Query and Mutation types:
 
     graphql_schema = new graphql.GraphQLSchema
         query: QueryType
+        mutation: MutationType
 
 ## Resolvers
 
@@ -89,7 +125,7 @@ The fake database will now be plain JSON objects:
         1: {id: 1, username: '2ndguy'}
     }
 
-The generic get/find methods are the same:
+The generic methods are the same:
 
     getType = (collection, {id}) ->
         collection[id]
@@ -105,7 +141,11 @@ The generic get/find methods are the same:
                 found.push item
         return found
 
-We already defined the root queries, so no need to attach them to a root context. We can use a blank object instead. It could be used to set configuration or some system state to base queries off of - this root object will be passed as the first argument to a root query resolver.
+    createType = (collection, new_item) ->
+        new_item.id = Object.keys(collection).length
+        collection[new_item.id] = new_item
+
+We already defined the root queries on the Query type, so no need to attach them to a root context. We can use a blank object instead. This could be used to set configuration or some system state - it will be passed as the first argument to a root query resolver.
 
     graphql_root = {}
 
@@ -140,4 +180,26 @@ We don't have to change anything about our queries with the new schema.
     #       [ { body: 'welcome here', sender: { username: 'fristpsoter' } },
     #         { body: 'hey tahnks for welcom',
     #           sender: { username: '2ndguy' } } ] } }
+
+    runQuery """
+    mutation{createMessage(thread_id: 0, user_id: 0, body: "ur welcome lol"){
+        body, thread{subject}, sender{username}
+    }}
+    """
+    # { createMessage:
+    #    { body: 'ur welcome lol',
+    #      thread: { subject: 'first subject' },
+    #      sender: { username: 'fristpsoter' } } }
+
+    runQuery """
+    mutation{createThread(subject: "just a thread here", message: {body: "just a mesg here", user_id: 0}){
+        subject
+        messages{body, sender{username}}
+    }}
+    """
+    # { createThread:
+    #   { subject: 'just a thread here',
+    #     messages:
+    #      [ { body: 'just a mesg here',
+    #          sender: { username: 'fristpsoter' } } ] } }
 
