@@ -130,3 +130,7 @@ Mutation queries return types, so you can perform regular sub-queries from there
 
     runQuery """mutation{createMessage(input: {body: "a test", thread_id: 0}){body, thread{subject}}}"""
     # { createMessage: { body: 'a test', thread: { subject: 'first subject' } } }
+
+---
+
+Next: [6. Defining Schemas Programmatically](https://github.com/prontotype-us/graphql-crashcourse/blob/master/6-defining-schemas-programmatically.litcoffee)
