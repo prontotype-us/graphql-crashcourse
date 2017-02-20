@@ -1,19 +1,21 @@
 # 2: Query arguments
 
+GraphQL lets you pass arguments to queries to be more specific. Arguments are passed alongside the field name in the format `key: value`, e.g. `{threads(status: "archived")}`.
+
     graphql = require 'graphql'
     {inspect} = require './helpers'
 
 ## Schema
 
-GraphQL lets you pass arguments to queries to be more specific. Arguments are passed alongside the field name in the format `key: value`, e.g. `{threads(status: "archived")}`.
+Arguments are defined like a field, with a name and type. Arguments may be required (they're optional by default) by adding `!` to the end, and you can set a default value with `= value`.
 
-Arguments are defined with a key and a type, and may be required (they're optional by default) by adding `!` to the end. Also note the array type, which can be used with any other type.
+Also note the array type, which can be used with any other type.
 
     graphql_schema = graphql.buildSchema """
 
     type Query {
-        randomNumber(max: Int): Float
-        randomNumbers(n: Int!, max: Int): [Float]
+        randomNumber(max: Int = 1): Float
+        randomNumbers(n: Int!, max: Int = 1): [Float]
         doubleNumbers(ns: [Int]): [Int]
     }
 
@@ -23,11 +25,11 @@ Arguments are defined with a key and a type, and may be required (they're option
 
 When a resolver functions has arguments, they will be passed in as a single object.
 
-    randomNumber = ({max=1}) ->
+    randomNumber = ({max}) ->
         Math.random() * max
 
     randomNumbers = ({n, max}) ->
-        [0...n].map -> randomNumber max
+        [0...n].map -> randomNumber {max}
 
     doubleNumbers = ({ns}) ->
         ns.map (n) -> n * 2
@@ -49,7 +51,10 @@ The query running function is the same as before:
             .then ({errors, data}) ->
                 console.log "[#{query}]", inspect(errors or data)
 
-Arguments are comma separated in parentheses next to the resolver name:
+Arguments, if supplied, are comma separated in parentheses next to the resolver name:
+
+    runQuery "{randomNumber}"
+    # { randomNumber: 97.11593144363752 }
 
     runQuery "{randomNumber(max: 100)}"
     # { randomNumber: 97.11593144363752 }
@@ -61,3 +66,7 @@ Any valid JSON type can be passed as an argument value:
 
     runQuery "{doubleNumbers(ns: [1, 2, 3])}"
     # { doubleNumbers: [ 2, 4, 6 ] }
+
+---
+
+Next: [3. Custom Types](https://github.com/prontotype-us/graphql-crashcourse/blob/master/3-custom-types.litcoffee)

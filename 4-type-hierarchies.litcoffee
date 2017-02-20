@@ -203,3 +203,6 @@ And from here, we can get needlessly recursive. It's resolvers all the way down:
     #                    { username: '2ndguy',
     #                      messages: [ { body: 'hey tahnks for welcom' } ] } } ] } } ] } }
 
+---
+
+Next: [5. Input Types](https://github.com/prontotype-us/graphql-crashcourse/blob/master/5-input-types.litcoffee)

@@ -1,15 +1,15 @@
 # 1: Simple Schemas & Queries
 
-GraphQL 
+GraphQL is a language that makes it easy to query arbitrarily nested data, getting (and executing) only the results you need. The two most important pieces of GraphQL are the *schema*, which defines the possible values and relationships of your data, and *queries*, which specify the exact shape of the data you want to retrieve.
 
     graphql = require 'graphql'
     {randomChoice, inspect} = require './helpers'
 
 ## The schema
 
-The GraphQL schema defines *types* and their *fields* to define how queries will fetch data. There are a number of built in types like String, ID and Int. You may also use custom defined types as fields to define a hierarchy.
+The GraphQL schema defines *types* and their *fields*, which also are typed. There are a number of built in types like String, ID and Int. You may also use custom types for fields to define a hierarchy (as you'll see in [part 4](https://github.com/prontotype-us/graphql-crashcourse/blob/master/4-type-hierarchies.litcoffee))
 
-At the root of the schema is a "Query" type which is the entry point for any query. Like any other type, it has a few fields and defines what type each field should be.
+At the root of the schema is a "Query" object, which defines the possible queries you can make. Each field here represents the name of a possible query and the type it should return.
 
     graphql_schema = graphql.buildSchema """
 
@@ -24,7 +24,7 @@ At the root of the schema is a "Query" type which is the entry point for any que
 
 ## Resolver functions
 
-When a query is executed, it tries to "resolve" the fields that you ask for into data of the correct type. In this example, if you queried for `{randomGreeting}` it would try to resolve as a string and output something like `{randomGreeting: 'hi there'}`.
+When a query is executed, it tries to "resolve" the fields that you ask for, returning some data of the correct type. In this example, if you queried for `{randomGreeting}` it would try to resolve as a string and output something like `{randomGreeting: 'hi there'}`.
 
 Each of these so-called "resolvers" is just a function that returns either a value or a promise. It can even be a static value.
 
@@ -77,3 +77,6 @@ We can add more keys to the query to get multiple results at once:
 
 *Output:* `{ somethingAsync: 5, somethingStatic: 10, randomNumber: 0.5087247788432705 }`
 
+---
+
+Next: [2. Query Arguments](https://github.com/prontotype-us/graphql-crashcourse/blob/master/2-query-arguments.litcoffee)

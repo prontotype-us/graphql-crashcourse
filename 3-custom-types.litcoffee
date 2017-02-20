@@ -74,3 +74,7 @@ And sub-resolvers may also have arguments:
 
     runQuery "{getDie(n_sides: 3){rolls(n_rolls: 5)}}"
     # { getDie: { rolls: [ 3, 3, 3, 2, 1 ] } }
+
+---
+
+Next: [4. Type Hierarchies](https://github.com/prontotype-us/graphql-crashcourse/blob/master/4-type-hierarchies.litcoffee)
