@@ -16,7 +16,7 @@ Also note the array type, which can be used with any other type.
     type Query {
         randomNumber(max: Int = 1): Float
         randomNumbers(n: Int!, max: Int = 1): [Float]
-        doubleNumbers(ns: [Int]): [Int]
+        doubleNumbers(ns: [Int]!): [Int]
     }
 
     """

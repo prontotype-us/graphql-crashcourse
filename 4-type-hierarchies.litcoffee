@@ -129,7 +129,7 @@ Then create specific methods and use some as root resolvers:
     runQuery = (query) ->
         graphql.graphql(graphql_schema, query, graphql_root)
             .then ({errors, data}) ->
-                console.log inspect(errors or data)
+                console.log "[#{query}]", inspect(errors or data)
 
 As before, when a query method returns a custom type, like `getMessage` &rarr; `Message`, the fields defined on the custom type are then available to descend further. In this case we're fetching the fields `thread: Thread` and `sender: User` from the `Message` type, and getting attributes from those results.
 
