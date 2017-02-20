@@ -1,15 +1,17 @@
-# 3. Custom types
+# 3: Custom types
+
+We've seen a few built in types, but the real point of GraphQL is to define the graph of your own type system to make it queriable. This is acheived with custom types, which also have their own fields (and resolver methods).
 
     graphql = require 'graphql'
     {inspect} = require './helpers'
 
 ## Schema
 
-We've seen a few built in types, but the real point of GraphQL is to define the graph of your own type system to make it queriable. This is acheived with custom types, which also have their own fields (and resolver methods).
+A custom type is defined just like the Query type we have been using - as a named set of typed fields, which represent resolver functions that should return something of the correct type.
 
-A custom type is defined just like the Query type we have been using. We'll still need a root Query type as an entry point.
+Here a `RandomDie` type is defined with a few fields. Like the Query object, these fields represent resolver functions that resolve to some type.
 
-This schema defines a single root method `getDie(n_sides)` which should return a custom type `RandomDie`. The `RandomDie` is defined with a few fields of its own. 
+Note that we'll still need a root Query type as an "entry point" for making queries. `getDie(n_sides)` will return an instance of our `RandomDie` type with the given number of sides.
 
     graphql_schema = graphql.buildSchema """
 
@@ -27,7 +29,7 @@ This schema defines a single root method `getDie(n_sides)` which should return a
 
 ## Resolvers
 
-When a custom type is resolved, it will just be a regular Javascript object (in fact, custom types inherit from a type called Object by default). In this example we'll define a class to encapsulate a `RandomDie` object and its sub-fields.
+When a custom type is resolved, it will just be a regular Javascript object (in fact, custom types inherit from a base Object type by default). In this example we'll define a class to encapsulate a `RandomDie` object and its sub-fields.
 
     class RandomDie
         constructor: ({n_sides}) ->

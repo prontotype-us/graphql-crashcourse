@@ -1,4 +1,4 @@
-# 4: Input types
+# 5: Input types
 
 So far we have retrieved data, but haven't had any input of our own. GraphQL separates the concerns of input from output with *input types* and *mutation queries*. For the most part, these are slight modifications of the regular types and queries.
 

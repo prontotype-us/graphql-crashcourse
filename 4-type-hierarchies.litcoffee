@@ -40,7 +40,7 @@ Once a custom type is defined, it can be used in any other type (including as an
 
 ## Resolvers
 
-Each custom type defines its resolver methods, which are just using the getType functions above to get their particular items. Remember that the static properties of every object (e.g. `Message.body`) can also be considered resolvers.
+Each custom type defines its resolver methods, which are just using the getType functions above. These will return objects (or arrays of objects) that represent the custom type from the schema. Remember that the static properties of every object (e.g. `Message.body`) are also considered resolvers, so they can be asked for in a query.
 
     class Message
         constructor: (id, {body, thread_id, user_id}) ->
