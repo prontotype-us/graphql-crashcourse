@@ -88,11 +88,11 @@ We'll define a class for our custom type, and a `getMessage` for the root Query 
         0: new Thread(0, {subject: 'first subject'})
     }
 
-    getMessage = ({id}) ->
-        return messages[id]
+    getType = (collection, {id}) ->
+        collection[id]
 
-    getThread = ({id}) ->
-        return threads[id]
+    getMessage = getType.bind null, messages
+    getThread = getType.bind null, threads
 
 The mutation methods are also just regular functions, the only difference is that these will have the input argument as an object, with the fields defined in the MessageInput type above.
 

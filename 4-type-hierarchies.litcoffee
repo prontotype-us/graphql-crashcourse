@@ -40,7 +40,7 @@ Once a custom type is defined, it can be used in any other type (including as an
 
 ## Resolvers
 
-Each custom type defines its resolver methods, which are just using the getType functions above. These will return objects (or arrays of objects) that represent the custom type from the schema. Remember that the static properties of every object (e.g. `Message.body`) are also considered resolvers, so they can be asked for in a query.
+Each custom type defines its resolver methods, which are just using the getType functions below. These will return objects (or arrays of objects) that represent the custom type from the schema. Remember that the static properties of every object (e.g. `Message.body`) are also considered resolvers, so they can be asked for in a query.
 
     class Message
         constructor: (id, {body, thread_id, user_id}) ->
@@ -92,31 +92,29 @@ We'll just use a hard-coded set of items as a fake database,
 
 And define some generic get/find methods:
 
-    getType = (collection) ->
-        ({id}) ->
-            collection[id]
+    getType = (collection, {id}) ->
+        collection[id]
 
-    findType = (collection) ->
-        (query) ->
-            found = []
-            for item_id, item of collection
-                matches = true
-                for k, v of query
-                    if item[k] != v
-                        matches = false
-                if matches
-                    found.push item
-            return found
+    findType = (collection, query) ->
+        found = []
+        for item_id, item of collection
+            matches = true
+            for k, v of query
+                if item[k] != v
+                    matches = false
+            if matches
+                found.push item
+        return found
 
 Then create specific methods and use some as root resolvers:
 
-    getMessage = getType messages
-    getThread = getType threads
-    getUser = getType users
+    getMessage = getType.bind null, messages
+    getThread = getType.bind null, threads
+    getUser = getType.bind null, users
 
-    findMessages = findType messages
-    findThreads = findType threads
-    findUsers = findType users
+    findMessages = findType.bind null, messages
+    findThreads = findType.bind null, threads
+    findUsers = findType.bind null, users
 
     graphql_root = {
         getMessage
