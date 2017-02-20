@@ -1,4 +1,4 @@
-# 1: Simple Schemas & Queries
+# 1. Simple Schemas & Queries
 
 GraphQL is a language that makes it easy to query arbitrarily nested data, getting (and executing) only the results you need. The two most important pieces of GraphQL are the *schema*, which defines the possible values and relationships of your data, and *queries*, which specify the exact shape of the data you want to retrieve.
 

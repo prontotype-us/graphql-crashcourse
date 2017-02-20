@@ -1,4 +1,4 @@
-# 3: Custom types
+# 3. Custom Types
 
 We've seen a few built in types, but the real point of GraphQL is to define the graph of your own type system to make it queriable. This is acheived with custom types, which also have their own fields (and resolver methods).
 

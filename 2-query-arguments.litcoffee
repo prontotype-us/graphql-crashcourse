@@ -1,4 +1,4 @@
-# 2: Query arguments
+# 2. Query Arguments
 
 GraphQL lets you pass arguments to queries to be more specific. Arguments are passed alongside the field name in the format `key: value`, e.g. `{threads(status: "archived")}`.
 

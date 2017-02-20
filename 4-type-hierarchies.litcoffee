@@ -1,4 +1,4 @@
-# 4: Type Hierarchies
+# 4. Type Hierarchies
 
 Now we've seen custom types, but they  have only used builtin types themselves... not much of a graph yet. In this section we'll compose a hierarchy of custom types to show more nested queries.
 

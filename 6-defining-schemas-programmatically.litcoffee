@@ -1,4 +1,4 @@
-# 6: Defining Schemas Programmatically
+# 6. Defining Schemas Programmatically
 
 The string-based schema we've been using is a great way to set up simple schemas, and to understand the concepts of GraphQL. However as your schema gets bigger you'll probably want a more programmatic approach - perhaps to build a schema from a JSON file.
 
