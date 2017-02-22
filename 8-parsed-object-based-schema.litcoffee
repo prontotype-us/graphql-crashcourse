@@ -7,7 +7,12 @@ To satisfy most Prontotype project schemas we just define an object's field type
 
 It would be possible to parse the true GraphQL schema with given parsing tools, but I'm not going into that. The main purpose of this is to demonstrate building a schema programmatically from another format (imagine it was from a JSON object instead).
 
-In this schema each type defines its singular and plural name, then each field as either two pieces (a name and built in type) or four pieces (a name, referencing collection, reference "direction", and ID key). The direction `>` will mean that *this* object has an ID of the given key, which will be used to search for an external object, e.g. `interaction.user_id > user`. The direction `<` will mean that the external object has an ID, e.g `user < interactions.user_id`.
+In this schema each type defines its singular and plural name, then each field as either two pieces (a name and built in type) or four pieces (a name, referencing collection, reference "direction", and ID key).
+
+* `>` will mean that *this* object has an ID of the given key, which will be used to search for an external object
+	* For example, `user.company > user.company_id`
+* `<` will mean that the external object has an ID
+	* For example, `user.interactions < interaction.user_id`
 
     object_schema = """
     User
@@ -16,6 +21,7 @@ In this schema each type defines its singular and plural name, then each field a
         interactions Interaction < user_id
 
     Interaction
+        status String
         user User > user_id
         assessment Assessment > assessment_id
         responses Response < interaction_id
@@ -42,9 +48,9 @@ In this schema each type defines its singular and plural name, then each field a
         users User < company_id
     """
 
-## Parsing the Schema
+## Parsing the String Schema
 
-To tokenize this format, we first split into "sections" separated by two blank lines, then split each line by spaces:
+To tokenize this format, we first split into "sections" separated by one blank lines (two newlines), then trim indentation and split each line by spaces:
 
     tokenizeSchema = (object_schema) ->
         object_schema.split('\n\n').map tokenizeSection
@@ -105,26 +111,37 @@ Now we should have a parsed JSON object from the above string schema. This would
     #          key: 'assessment_id' } ] },
     # ...
 
-## Building the Schema
+## Building the GraphQL Schema
 
 We'll keep a map of builtin types and custom types.
+
+    parsed_types = {} # For easy reference to original parsed types
+    parsed.map (parsed_type) ->
+        parsed_types[parsed_type.name] = parsed_type
 
     builtin_types =
         String: graphql.GraphQLString
 
     custom_types = {}
+    input_types = {}
 
 To build the schema we'll be iterating over the parsed types and their fields to construct our custom `GraphQLObjectType`s.
 
     parsed.map (parsed_type) ->
         custom_types[parsed_type.name] = new graphql.GraphQLObjectType
             name: parsed_type.name
-            singular: parsed_type.singular
-            collection: parsed_type.collection
             fields: ->
                 fieldsForParsedFields parsed_type.fields
 
-To create the output fields for a custom type we iterate over the parsed fields:
+Similar for input types, appending "Input" to the name and creating a `GraphQLInputObjectType`:
+
+    parsed.map (parsed_type) ->
+        input_types[parsed_type.name + 'Input'] = new graphql.GraphQLInputObjectType
+            name: parsed_type.name + 'Input'
+            fields: ->
+                inputFieldsForParsedFields parsed_type.fields
+
+To create the output fields for a custom type we iterate over the parsed fields and add the definition for either a builtin type or a custom type:
 
     fieldsForParsedFields = (parsed_fields) ->
         fields = {id: type: graphql.GraphQLID} # Everything has an ID by default
@@ -145,16 +162,21 @@ To create the output fields for a custom type we iterate over the parsed fields:
 
         return fields
 
-For a custom field, we return the custom type as `type` and a `resolve` function. Depending on the attachment method (get `>` vs. find `<`) we use either the `getType` or `findType` methods, building the appropriate query from the current object.
+For a custom field, we need the `type` and a `resolve` function. Depending on the attachment method (get `>` vs. find `<`), the resolve function will use the `getType` or `findType` methods and build the query from the current object.
+
+To enable filtering at the field level, e.g. `{user{interactions(query: {status: "done"}){...}}}`, we add a single argument `query`, which will be the input type corresponding to this type. *Note:* The reasoning for doing it this way (instead of direct arguments like `interactions(status: "done")` is firstly that it allows us to reuse the input type, secondly that this allows us to later pass non-query arguments for sorting and pagination.
 
     customFieldForParsedField = (parsed_field) ->
+        {collection} = parsed_types[parsed_field.type]
         Type = custom_types[parsed_field.type]
-        {collection} = Type._typeConfig
+        InputType = input_types[parsed_field.type + 'Input']
 
         # Get attachments (>) look for an external object by id from self[key]
         if parsed_field.method == 'get'
             resolve = (self, args) ->
                 query = {id: self[parsed_field.key]}
+                if args.query?
+                    Object.assign query, args.query
                 return getType collection, query
 
         # Find attachments (<) look for other objects matching obj[key] = self.id
@@ -163,66 +185,73 @@ For a custom field, we return the custom type as `type` and a `resolve` function
             resolve = (self, args) ->
                 query = {}
                 query[parsed_field.key] = self.id
+                if args.query?
+                    Object.assign query, args.query
                 return findType collection, query
 
         return {
             type: Type
+            args:
+                query: type: InputType
             resolve
         }
 
-To create the input types for mutations we use the same strategy. This will be simpler because all of the fields are builtins.
+To create the fields for input types we use the same strategy, but it will be much simpler because all of the input-able fields are builtins.
 
-    input_types = {}
-
-    inputFieldsForType = (parsed_fields) ->
+    inputFieldsForParsedFields = (parsed_fields) ->
         fields = {}
         parsed_fields.map (parsed_field) ->
             if builtin_type = builtin_types[parsed_field.type]
                 fields[parsed_field.name] = type: builtin_type
             else if parsed_field.method == 'get'
                 fields[parsed_field.key] = type: graphql.GraphQLID
-        fields['name'] = type: graphql.GraphQLString
         return fields
 
-    parsed.map (parsed_type) ->
-        input_types[parsed_type.name + 'Input'] = new graphql.GraphQLInputObjectType
-            name: parsed_type.name + 'Input'
-            fields: inputFieldsForType parsed_type.fields
-
 Lastly we have to build the main Query and Mutation objects. Their fields are resolvers as usual.
+
+The shape for each of the main query and mutation methods is:
+
+* `get(id: _)`
+* `find(query: {...})`
+* `create(query: {...})`
+* `update(id: _, query: {...})`
 
     query_fields = {}
     mutation_fields = {}
 
     parsed.map (parsed_type) ->
-        query_fields[parsed_type.singular] =
-            type: custom_types[parsed_type.name]
+        {singular, collection} = parsed_type
+        Type = custom_types[parsed_type.name]
+        InputType = input_types[parsed_type.name + 'Input']
+
+        query_fields[singular] =
+            type: Type
             args:
                 id: type: graphql.GraphQLID
-            resolve: (context, query) ->
-                getType(parsed_type.collection, query)
+            resolve: (context, {id}) ->
+                getType(collection, {id})
 
-        query_fields[parsed_type.collection] =
-            type: new graphql.GraphQLList custom_types[parsed_type.name]
+        query_fields[collection] =
+            type: new graphql.GraphQLList Type
             args:
-                id: type: graphql.GraphQLID
-            resolve: (context, query) ->
-                findType(parsed_type.collection, query)
+                query: type: InputType
+            resolve: (context, {query}) ->
+                findType(collection, query)
 
-        mutation_fields['create_' + parsed_type.singular] =
-            type: custom_types[parsed_type.name]
+        mutation_fields['create_' + singular] =
+            type: Type
             args:
-                create: type: input_types[parsed_type.name + 'Input']
+                create: type: InputType
             resolve: (context, {id, create}) ->
-                createType(parsed_type.collection, create)
+                createType(collection, create)
 
-        mutation_fields['update_' + parsed_type.singular] =
-            type: custom_types[parsed_type.name]
+        mutation_fields['update_' + singular] =
+            type: Type
             args:
                 id: type: graphql.GraphQLID
-                update: type: input_types[parsed_type.name + 'Input']
+                update: type: InputType
             resolve: (context, {id, update}) ->
-                updateType(parsed_type.collection, id, update)
+                updateType(collection, id, update)
 
     QueryType = new graphql.GraphQLObjectType
         name: 'Query'
@@ -243,11 +272,12 @@ The resolvers will again be based on a static database, but you can imagine repl
     db = {
         users: {
             0: {id: 0, email: "test@prontotype.us"}
+            1: {id: 1, email: "jones@test.nest"}
         }
         interactions: {
-            0: {id: 0, user_id: 0, assessment_id: 0}
+            0: {id: 0, user_id: 1, assessment_id: 0}
             1: {id: 1, user_id: 0, assessment_id: 2}
-            2: {id: 2, user_id: 1, assessment_id: 0}
+            2: {id: 2, user_id: 0, assessment_id: 0, status: "done"}
             3: {id: 3, user_id: 1, assessment_id: 1}
         }
         assessments: {
@@ -266,7 +296,8 @@ The resolvers will again be based on a static database, but you can imagine repl
             3: {id: 3, item_id: 1, body: "No", scale: "Dog", value: 1}
         }
         responses: {
-            0: {id: 0, interaction_id: 0, item_id: 0, answer_id: 0}
+            0: {id: 0, interaction_id: 2, item_id: 0, answer_id: 0}
+            1: {id: 1, interaction_id: 2, item_id: 1, answer_id: 1}
         }
     }
 
@@ -307,7 +338,8 @@ The resolvers will again be based on a static database, but you can imagine repl
 
     runQuery """
     {user(id: 0){
-        email, interactions{
+        email,
+        interactions(query: {status: "done"}){
             assessment{
                 name
             }
@@ -321,34 +353,10 @@ The resolvers will again be based on a static database, but you can imagine repl
     # { user:
     #    { email: 'test@prontotype.us',
     #      interactions:
-    #       [ { assessment:
-    #            { name: 'Dog Test',
-    #              items:
-    #               [ { body: 'Are you a dog?',
-    #                   answers: [ { body: 'Yes' }, { body: 'No' } ] },
-    #                 { body: 'Are you not a dog?', answers: [] } ] } },
-    #         { assessment: { name: 'Values', items: [] } } ] } }
-
-    runQuery """{
-        assessments{
-            id, name
-            interactions{
-                id, assessment_id
-            }
-        }
-    }"""
-    # { assessments:
-    #    [ { id: '0',
-    #        name: 'Dog Test',
-    #        interactions:
-    #         [ { id: '0', assessment_id: '0' },
-    #           { id: '2', assessment_id: '0' } ] },
-    #      { id: '1',
-    #        name: 'Dark Side',
-    #        interactions: [ { id: '3', assessment_id: '1' } ] },
-    #      { id: '2',
-    #        name: 'Values',
-    #        interactions: [ { id: '1', assessment_id: '2' } ] } ] }
+    #       [ { assessment: { name: 'Dog Test' },
+    #           responses:
+    #            [ { item: { body: 'Are you a dog?' }, answer: { body: 'Yes' } },
+    #              { item: { body: 'Are you not a dog?' }, answer: { body: 'No' } } ] } ] } }
 
     runQuery """mutation{
         update_user(
@@ -362,13 +370,13 @@ The resolvers will again be based on a static database, but you can imagine repl
     # { update_user: { id: '0', email: 'testr@net.net' } }
 
     runQuery """mutation{
-        create_response(create: {interaction_id: 0, item_id: 0, answer_id: 0}){
+        create_response(create: {interaction_id: 1, item_id: 0, answer_id: 0}){
             id, item{body}, answer{body}
         }
     }
     """
     # { create_response:
-    #    { id: '1',
+    #    { id: '2',
     #      item: { body: 'Are you a dog?' },
     #      answer: { body: 'Yes' } } }
 
