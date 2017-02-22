@@ -3,13 +3,13 @@
     graphql = require 'graphql'
     {inspect} = require './helpers'
 
-To satisfy most Prontotype project schemas we just define an object's field types and attachments based on well-named IDs. In order to make this easy we'll invent a simplified schema format.
+To satisfy most Prontotype project schemas we define an object's field types and attachments based on well-named IDs. In order to make this easy we'll invent a simplified schema format.
 
 It would be possible to parse the true GraphQL schema with existing parsing tools, but I'm not going into that. The main purpose of this is to demonstrate building a schema programmatically from another format (imagine it was from a JSON object instead).
 
-In this schema each type defines its singular and plural name, then each field as either two pieces (a name and built in type) or four pieces (a name, referenced type, reference "direction", and ID key).
+In this schema each type defines its singular and plural name, then each field as either two pieces (a name and built in type) or four pieces (a name, attached type, attachment "direction", and ID key).
 
-For reference directions, we use the two common attachment strategies:
+For attachment directions, we use the two common attachment strategies:
 
 * `>` will mean that *this* object has key that represents an external object's ID,
 	* for example `User.company > company_id` &rarr;  `user.company = companies(id = user.company_id)`
@@ -52,7 +52,7 @@ For reference directions, we use the two common attachment strategies:
 
 ## Parsing the String Schema
 
-To tokenize this format, we first split into "sections" separated by one blank lines (two newlines), then trim indentation and split each line by spaces:
+To tokenize this format, we first split into sections separated by one blank line (two newlines), then trim indentation and split each line by spaces:
 
     tokenizeSchema = (object_schema) ->
         object_schema.split('\n\n').map tokenizeSection
@@ -81,12 +81,8 @@ To parse from those tokens, we take the first line of each section as the type n
             [name, type] = line
             {name, type}
         else
-            [name, type, ref_type, key] = line
-            if ref_type == '>'
-                method = 'get'
-            else
-                method = 'find'
-            {name, method, type, key}
+            [name, type, dir, key] = line
+            {name, type, dir, key}
 
     tokenized = tokenizeSchema object_schema
     parsed = tokenized.map parseSection
@@ -100,15 +96,15 @@ Now we should have a parsed JSON object from the above string schema. This would
     #      [ { name: 'name', type: 'string' },
     #        { name: 'email', type: 'string' },
     #        { name: 'interactions',
-    #          method: 'find',
+    #          dir: '<',
     #          type: 'Interaction',
     #          key: 'user_id' } ] },
     #   { name: 'Interaction',
     #     collection: 'interactions',
     #     fields:
-    #      [ { name: 'user', method: 'get', type: 'User', key: 'user_id' },
+    #      [ { name: 'user', dir: '>', type: 'User', key: 'user_id' },
     #        { name: 'assessment',
-    #          method: 'get',
+    #          dir: '>',
     #          type: 'Assessment',
     #          key: 'assessment_id' } ] },
     # ...
@@ -156,7 +152,7 @@ To create the output fields for a custom type we iterate over the parsed fields 
 
             else
                 # Add a regular ID field for get attachments, e.g. interaction.user_id
-                if parsed_field.method == 'get'
+                if parsed_field.dir == '>'
                     fields[parsed_field.key] = type: graphql.GraphQLID
 
                 # Create the full type and resolver
@@ -164,7 +160,7 @@ To create the output fields for a custom type we iterate over the parsed fields 
 
         return fields
 
-For a custom field, we need the `type` and a `resolve` function. Depending on the attachment method (get `>` vs. find `<`), the resolve function will use the `getType` or `findType` methods and build the query from the current object.
+For a custom field, we need the `type` and a `resolve` function. Depending on the attachment direction (get `>` vs. find `<`), the resolve function will use the `getType` or `findType` methods and build the query from the current object.
 
 To enable filtering at the field level, e.g. `{user{interactions(query: {status: "done"}){...}}}`, we add a single argument `query`, which will be the input type corresponding to this type. *Note:* The reasoning for doing it this way (instead of direct arguments like `interactions(status: "done")` is firstly that it allows us to reuse the input type, secondly that this allows us to later pass non-query arguments for sorting and pagination.
 
@@ -174,7 +170,7 @@ To enable filtering at the field level, e.g. `{user{interactions(query: {status:
         InputType = input_types[parsed_field.type + 'Input']
 
         # Get attachments (>) look for an external object by id from self[key]
-        if parsed_field.method == 'get'
+        if parsed_field.dir == '>'
             resolve = (self, args) ->
                 query = {id: self[parsed_field.key]}
                 if args.query?
@@ -182,7 +178,7 @@ To enable filtering at the field level, e.g. `{user{interactions(query: {status:
                 return getType collection, query
 
         # Find attachments (<) look for other objects matching obj[key] = self.id
-        else if parsed_field.method == 'find'
+        else if parsed_field.dir == '<'
             Type = new graphql.GraphQLList Type # Will return a list
             resolve = (self, args) ->
                 query = {}
@@ -205,7 +201,7 @@ To create the fields for input types we use the same strategy, but it will be mu
         parsed_fields.map (parsed_field) ->
             if builtin_type = builtin_types[parsed_field.type]
                 fields[parsed_field.name] = type: builtin_type
-            else if parsed_field.method == 'get'
+            else if parsed_field.dir == '>'
                 fields[parsed_field.key] = type: graphql.GraphQLID
         return fields
 
