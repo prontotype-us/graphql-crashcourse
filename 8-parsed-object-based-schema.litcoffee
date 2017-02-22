@@ -170,9 +170,29 @@ For a custom field, we return the custom type as `type` and a `resolve` function
             resolve
         }
 
-We have to make a main query object still. Its fields are resolvers as usual, this time we'll iterate through all the types to make a root get and find method for each, based on its values for `singular` and `collection`.
+To create the input types for mutations we use the same strategy. This will be simpler because all of the fields are builtins.
+
+    input_types = {}
+
+    inputFieldsForType = (parsed_fields) ->
+        fields = {}
+        parsed_fields.map (parsed_field) ->
+            if builtin_type = builtin_types[parsed_field.type]
+                fields[parsed_field.name] = type: builtin_type
+            else if parsed_field.method == 'get'
+                fields[parsed_field.key] = type: graphql.GraphQLID
+        fields['name'] = type: graphql.GraphQLString
+        return fields
+
+    parsed.map (parsed_type) ->
+        input_types[parsed_type.name + 'Input'] = new graphql.GraphQLInputObjectType
+            name: parsed_type.name + 'Input'
+            fields: inputFieldsForType parsed_type.fields
+
+Lastly we have to build the main Query and Mutation objects. Their fields are resolvers as usual.
 
     query_fields = {}
+    mutation_fields = {}
 
     parsed.map (parsed_type) ->
         query_fields[parsed_type.singular] =
@@ -189,15 +209,32 @@ We have to make a main query object still. Its fields are resolvers as usual, th
             resolve: (context, query) ->
                 findType(parsed_type.collection, query)
 
+        mutation_fields['create_' + parsed_type.singular] =
+            type: custom_types[parsed_type.name]
+            args:
+                create: type: input_types[parsed_type.name + 'Input']
+            resolve: (context, {id, create}) ->
+                createType(parsed_type.collection, create)
+
+        mutation_fields['update_' + parsed_type.singular] =
+            type: custom_types[parsed_type.name]
+            args:
+                id: type: graphql.GraphQLID
+                update: type: input_types[parsed_type.name + 'Input']
+            resolve: (context, {id, update}) ->
+                updateType(parsed_type.collection, id, update)
+
     QueryType = new graphql.GraphQLObjectType
         name: 'Query'
         fields: query_fields
 
-*TODO: Mutations*
+    MutationType = new graphql.GraphQLObjectType
+        name: 'Mutation'
+        fields: mutation_fields
 
     graphql_schema = new graphql.GraphQLSchema
         query: QueryType
-        # mutation: MutationType
+        mutation: MutationType
 
 ## Resolvers
 
@@ -248,6 +285,16 @@ The resolvers will again be based on a static database, but you can imagine repl
             if matches
                 found.push item
         return found
+
+    createType = (collection, new_item) ->
+        console.log '[createType]', collection, new_item
+        new_id = Object.keys(db[collection]).length
+        new_item.id = new_id
+        db[collection][new_id] = new_item
+
+    updateType = (collection, id, update) ->
+        item = getType collection, {id}
+        Object.assign item, update
 
     graphql_root = {}
 
@@ -302,4 +349,26 @@ The resolvers will again be based on a static database, but you can imagine repl
     #      { id: '2',
     #        name: 'Values',
     #        interactions: [ { id: '1', assessment_id: '2' } ] } ] }
+
+    runQuery """mutation{
+        update_user(
+            id: 0,
+            update: {
+                email: "testr@net.net"
+            }
+        ){id, email}
+    }
+    """
+    # { update_user: { id: '0', email: 'testr@net.net' } }
+
+    runQuery """mutation{
+        create_response(create: {interaction_id: 0, item_id: 0, answer_id: 0}){
+            id, item{body}, answer{body}
+        }
+    }
+    """
+    # { create_response:
+    #    { id: '1',
+    #      item: { body: 'Are you a dog?' },
+    #      answer: { body: 'Yes' } } }
 
