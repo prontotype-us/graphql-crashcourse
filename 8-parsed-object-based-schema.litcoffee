@@ -3,16 +3,18 @@
     graphql = require 'graphql'
     {inspect} = require './helpers'
 
-To satisfy most Prontotype project schemas we just define an object's field types and attachments based on IDs. In order to make this easy we'll invent a simplified schema format.
+To satisfy most Prontotype project schemas we just define an object's field types and attachments based on well-named IDs. In order to make this easy we'll invent a simplified schema format.
 
-It would be possible to parse the true GraphQL schema with given parsing tools, but I'm not going into that. The main purpose of this is to demonstrate building a schema programmatically from another format (imagine it was from a JSON object instead).
+It would be possible to parse the true GraphQL schema with existing parsing tools, but I'm not going into that. The main purpose of this is to demonstrate building a schema programmatically from another format (imagine it was from a JSON object instead).
 
-In this schema each type defines its singular and plural name, then each field as either two pieces (a name and built in type) or four pieces (a name, referencing collection, reference "direction", and ID key).
+In this schema each type defines its singular and plural name, then each field as either two pieces (a name and built in type) or four pieces (a name, referenced type, reference "direction", and ID key).
 
-* `>` will mean that *this* object has an ID of the given key, which will be used to search for an external object
-	* For example, `user.company > user.company_id`
-* `<` will mean that the external object has an ID
-	* For example, `user.interactions < interaction.user_id`
+For reference directions, we use the two common attachment strategies:
+
+* `>` will mean that *this* object has key that represents an external object's ID,
+	* for example `User.company > company_id` &rarr;  `user.company = companies(id = user.company_id)`
+* `<` will mean that some external object(s) have a key that matches this object's ID,
+	* for example `User.interactions < user_id` &rarr; `user.interactions = interactions(user_id = user.id)`
 
     object_schema = """
     User
