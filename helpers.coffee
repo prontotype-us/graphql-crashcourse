@@ -27,3 +27,18 @@ exports.mapObj = (f, o) ->
 
 exports.inspect = inspect = (o) ->
     util.inspect o, colors: true, depth: null
+
+exports.getType = (collection, {id}) ->
+    collection[id]
+
+exports.findType = (collection, query) ->
+    found = []
+    for item_id, item of collection
+        matches = true
+        for k, v of query
+            if item[k] != v
+                matches = false
+        if matches
+            found.push item
+    return found
+

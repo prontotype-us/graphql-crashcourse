@@ -378,3 +378,6 @@ The resolvers will again be based on a static database, but you can imagine repl
     #      item: { body: 'Are you a dog?' },
     #      answer: { body: 'Yes' } } }
 
+---
+
+*Next:* [9. Advanced Queries](https://github.com/prontotype-us/graphql-crashcourse/blob/master/9-advanced-queries.litcoffee)

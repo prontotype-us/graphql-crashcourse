@@ -7,6 +7,8 @@
 5. [Input Types](https://github.com/prontotype-us/graphql-crashcourse/blob/master/5-input-types.litcoffee)
 6. [Somata Schema Interlude](https://github.com/prontotype-us/graphql-crashcourse/blob/master/6-somata-schema-interlude.litcoffee)
 7. [Defining Schemas Programmatically](https://github.com/prontotype-us/graphql-crashcourse/blob/master/7-defining-schemas-programmatically.litcoffee)
+8. [Parsed Object Based Schema](https://github.com/prontotype-us/graphql-crashcourse/blob/master/8-parsed-object-based-schema.litcoffee)
+9. [Advanced Queries](https://github.com/prontotype-us/graphql-crashcourse/blob/master/9-advanced-queries.litcoffee)
 
 Other useful links
 

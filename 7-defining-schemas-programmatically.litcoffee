@@ -200,3 +200,6 @@ We don't have to change anything about our queries with the new schema.
     #      [ { body: 'just a mesg here',
     #          sender: { username: 'fristpsoter' } } ] } }
 
+---
+
+*Next:* [8. Parsed Object Based Schema](https://github.com/prontotype-us/graphql-crashcourse/blob/master/8-parsed-object-based-schema.litcoffee)
