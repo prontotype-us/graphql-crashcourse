@@ -16,6 +16,8 @@ For attachment directions, we use the two common attachment strategies:
 * `<` will mean that some external object(s) have a key that matches this object's ID,
   * for example `User.interactions < user_id` &rarr; `user.interactions = interactions(user_id = user.id)`
 
+The schema:
+
     object_schema = """
     User
         name String
@@ -213,6 +215,8 @@ The shape for each of the main query and mutation methods is:
 * `find(query: {...})`
 * `create(query: {...})`
 * `update(id: _, query: {...})`
+
+We map over the parsed types to create a get, find, create, and update for each:
 
     query_fields = {}
     mutation_fields = {}
