@@ -12,9 +12,9 @@ In this schema each type defines its singular and plural name, then each field a
 For attachment directions, we use the two common attachment strategies:
 
 * `>` will mean that *this* object has key that represents an external object's ID,
-	* for example `User.company > company_id` &rarr;  `user.company = companies(id = user.company_id)`
+  * for example `User.company > company_id` &rarr;  `user.company = companies(id = user.company_id)`
 * `<` will mean that some external object(s) have a key that matches this object's ID,
-	* for example `User.interactions < user_id` &rarr; `user.interactions = interactions(user_id = user.id)`
+  * for example `User.interactions < user_id` &rarr; `user.interactions = interactions(user_id = user.id)`
 
     object_schema = """
     User
